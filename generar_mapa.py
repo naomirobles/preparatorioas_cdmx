@@ -375,6 +375,7 @@ def main():
   <div id="panel-header">
     <div class="logo">C5 · CDMX</div>
     <h1>Preparatorias &amp;<br>Transporte Público</h1>
+    <div class="subtitle">Sistema de análisis cartográfico</div>
   </div>
 
   <div id="panel-body">
@@ -472,6 +473,19 @@ def main():
       </div>
     </div>
 
+    <div class="transport-group" id="tg-cablebus">
+      <div class="tg-header" onclick="toggleTG('cablebus')">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="font-size:13px;color:#b57bee;line-height:1">★</div>
+          <span class="tg-label">Cablebús</span>
+        </div>
+        <span class="tg-arrow" id="arr-cablebus">▼</span>
+      </div>
+      <div class="tg-body" id="tgb-cablebus" style="display:none">
+        <div id="filter-cablebus"></div>
+      </div>
+    </div>
+
     <!-- FILTRO ALCALDÍA -->
     <div class="section-title">Filtrar por alcaldía</div>
     <span class="select-all" onclick="toggleAll('alcaldia', true)">SELEC. TODO</span>
@@ -547,6 +561,7 @@ const CETRAM_COLOR   = '#039b94';
 function getTransColor(nombre, poi, especialid) {{
   const p = (poi       || '').toUpperCase();
   const e = (especialid|| '').toUpperCase().trim();
+  if (p.includes('CABLEBUS')) return '#b57bee';
   if (p.includes('TROLEBUS')) return TROLEBUS_COLOR;
   if (p.includes('CETRAM'))   return CETRAM_COLOR;
   if (p.includes('METROBUS')) {{
@@ -564,6 +579,7 @@ function getTransColor(nombre, poi, especialid) {{
 function getTransTypeKey(nombre, poi, especialid) {{
   const p = (poi       || '').toUpperCase();
   const e = (especialid|| '').toUpperCase().trim();
+  if (p.includes('CABLEBUS')) return 'cablebus';
   if (p.includes('TROLEBUS')) return 'trolebus';
   if (p.includes('CETRAM'))   return 'cetrams';
   if (p.includes('METROBUS')) {{
@@ -577,7 +593,15 @@ function getTransTypeKey(nombre, poi, especialid) {{
   return 'otro';
 }}
 
-function makeIcon(color) {{
+function makeIcon(color, shape) {{
+  if (shape === 'star') {{
+    return L.divIcon({{
+      html: `<div style="font-size:14px;line-height:1;filter:drop-shadow(0 0 4px ${{color}});color:${{color}};margin-top:-2px">★</div>`,
+      className: '',
+      iconSize: [14,14],
+      iconAnchor: [7,7]
+    }});
+  }}
   return L.divIcon({{
     html: `<div style="width:10px;height:10px;border-radius:50%;background:${{color}};border:2px solid rgba(255,255,255,.35);box-shadow:0 0 7px ${{color}}90"></div>`,
     className: '',
@@ -647,7 +671,8 @@ DATA_TRANSPORTE.features.forEach(f => {{
   const coords = f.geometry.coordinates;
   const color   = getTransColor(p.NOMBRE_POI, p.POI, p.ESPECIALID);
   const typeKey = getTransTypeKey(p.NOMBRE_POI, p.POI, p.ESPECIALID);
-  const marker  = L.marker([coords[1], coords[0]], {{ icon: makeIcon(color) }})
+  const shape   = typeKey === 'cablebus' ? 'star' : 'circle';
+  const marker  = L.marker([coords[1], coords[0]], {{ icon: makeIcon(color, shape) }})
     .bindPopup(`<div class="popup-title">${{p.NOMBRE_POI || ''}}</div>
       <div class="popup-row"><span class="popup-key">Tipo</span><span class="popup-val popup-badge" style="color:${{color}};border-color:${{color}}40">${{p.POI || ''}}</span></div>`, {{ maxWidth: 220 }});
   transMarkers.push({{ typeKey, marker }});
@@ -759,6 +784,7 @@ buildTransFilterGroup('filter-metro',    METRO_LINES,    'metro-',    METRO_COLS
 buildTransFilterGroup('filter-metrobus', METROBUS_LINES, 'metrobus-', METROBUS_COLS);
 buildSingleFilter('filter-trolebus', 'trolebus', '#67d1f7', 'Trolebús');
 buildSingleFilter('filter-cetrams',  'cetrams',  '#039b94', 'CETRAMS');
+buildSingleFilter('filter-cablebus', 'cablebus', '#b57bee', 'Cablebús');
 
 // Inicializar marcadores de transporte (activoTransporte ya está lleno)
 renderTransporte();
