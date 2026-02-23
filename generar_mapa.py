@@ -19,7 +19,7 @@ PERIMETROS_GPKG = "capas_prepas/perimetros_prepas.gpkg"
 PERIMETROS_LAYER= "perimetros_prepas"
 TRANSPORTE_GPKG = "capas_auxiliares/todos_los_sistemas_de_transporte.gpkg"
 TRANSPORTE_LAYER= "transporte"
-RUTAS_GPKG      = "rutas_unidas.gpkg"
+RUTAS_GPKG      = "rutas_unidas_v2.gpkg"
 RUTAS_LAYER     = "todas_las_rutas"
 OUTPUT_HTML     = "mapa_prepas_cdmx.html"
 # ──────────────────────────────────────────────────────────────────────────────
@@ -51,7 +51,8 @@ def main():
     prepas     = load_layer(PREPAS_GPKG,     PREPAS_LAYER)
     perimetros = load_layer(PERIMETROS_GPKG, PERIMETROS_LAYER)
     transporte = load_layer(TRANSPORTE_GPKG, TRANSPORTE_LAYER)
-    rutas      = load_layer(RUTAS_GPKG,      RUTAS_LAYER)
+    rutas          = load_layer(RUTAS_GPKG,      RUTAS_LAYER)
+    alcaldias_cdmx = load_layer("capas_auxiliares/ALCALDIAS.gpkg", "ALCALDIAS")
 
     # Conteo de transportes por prepa (para popup)
     conteo = rutas.groupby("prepa_id")["nombre_transporte"].nunique().reset_index()
@@ -70,6 +71,7 @@ def main():
     transporte_props = ["ID_CARTO", "NOMBRE_POI", "POI", "SUBCLACIFICACION", "ESPECIALID"]
     rutas_props      = ["prepa_id", "prepa_nombre", "nombre_transporte", "tipo_transporte", "distancia_m"]
 
+    geojson_alcaldias_cdmx = json.dumps(gdf_to_geojson(alcaldias_cdmx, [alcaldias_cdmx.columns[0]]), ensure_ascii=False)
     geojson_prepas     = json.dumps(gdf_to_geojson(prepas,     prepas_props),     ensure_ascii=False)
     geojson_perimetros = json.dumps(gdf_to_geojson(perimetros, perimetros_props), ensure_ascii=False)
     geojson_transporte = json.dumps(gdf_to_geojson(transporte, transporte_props), ensure_ascii=False)
@@ -373,7 +375,6 @@ def main():
   <div id="panel-header">
     <div class="logo">C5 · CDMX</div>
     <h1>Preparatorias &amp;<br>Transporte Público</h1>
-    <div class="subtitle">Sistema de análisis cartográfico</div>
   </div>
 
   <div id="panel-body">
@@ -392,6 +393,12 @@ def main():
       <div class="toggle-box"></div>
       <div class="toggle-swatch" style="background:#00e5ff;opacity:.6"></div>
       <span class="toggle-label">Perímetros 3 cuadras</span>
+    </label>
+    <label class="layer-toggle">
+      <input type="checkbox" id="tog-alcaldias" checked>
+      <div class="toggle-box"></div>
+      <div class="toggle-swatch" style="background:#4a90d9;opacity:.7"></div>
+      <span class="toggle-label">Límites alcaldías</span>
     </label>
     <label class="layer-toggle">
       <input type="checkbox" id="tog-rutas" checked>
@@ -493,6 +500,7 @@ def main():
 
 <script>
 // ── DATOS ──────────────────────────────────────────────────────────────────
+const DATA_ALCALDIAS   = {geojson_alcaldias_cdmx};
 const DATA_PREPAS      = {geojson_prepas};
 const DATA_PERIMETROS  = {geojson_perimetros};
 const DATA_TRANSPORTE  = {geojson_transporte};
@@ -513,6 +521,10 @@ L.tileLayer('https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}
   attribution: '&copy; OpenStreetMap &copy; CARTO',
   maxZoom: 19
 }}).addTo(map);
+
+// ── CAPA ALCALDÍAS ────────────────────────────────────────────────────────
+const styleAlcaldia = {{ color:'#4a90d9', weight:1.5, fillColor:'transparent', fillOpacity:0, opacity:.5, dashArray:'6 3' }};
+const layerAlcaldias = L.geoJSON(DATA_ALCALDIAS, {{ style: styleAlcaldia }}).addTo(map);
 
 // ── ESTILOS ────────────────────────────────────────────────────────────────
 const stylePrepa     = {{ color:'#ff4d6d', weight:1.5, fillColor:'#ff4d6d', fillOpacity:.25 }};
@@ -662,6 +674,7 @@ function bindToggle(id, layer) {{
     this.checked ? layer.addTo(map) : map.removeLayer(layer);
   }});
 }}
+bindToggle('tog-alcaldias',  layerAlcaldias);
 bindToggle('tog-prepas',     layerPrepas);
 bindToggle('tog-perimetros', layerPerimetros);
 bindToggle('tog-rutas',      layerRutas);
